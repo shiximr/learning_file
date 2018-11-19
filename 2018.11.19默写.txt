@@ -1,0 +1,77 @@
+1.什么是数据库？
+答：存储数据的仓库
+2.mysql数据库的特点
+答：开源、跨平台、支持多种编程语言、可移植
+漏写一个特点： 适合中小型企业的关系型数据库
+3.mysql安装后，存放随机生成的密码存放路径是？如何获取初始密码？
+答：/var/log/mysqld.log     grep "password" /var/log/mysqld.log
+4.显示已有库的命令是？
+答：show databases;
+5.如何切换库？
+答：use 命令切换
+6.显示当前所在的库的命令是？
+答：select database();
+7.如何创建一个新库？
+答：create database +库名
+8.如何显示已有的表？
+答：show tables
+9.如何删除一个数据库？
+答：drop database +数据库名称
+10.如何查看表结构？
+答：desc + 表名
+11.如何创建一个新表？
+答:create table + 表名（字段 类型（宽度） 约束条件）；
+12.如何查看表记录？
+答：select * from 库名.表名;
+13.如何删除一个已有的表？
+答.drop table + 表名
+14.如何向一个表中插入一条新的记录？
+答：insert into 表名 values(值列表)；
+15.如何更改一个已有的表记录？
+答：update 表名  set 字段＝字段值；
+16.如何删除表记录？
+答：delete from 表名；
+17.常见的数据类型有哪些？
+答.int tinyint smallint miduleint bigint ; float ; double; char ; varchar; blob; text 
+正确答案： 整形 、浮点型、字符型、日期时间型、枚举型
+18.char和vrchar有什么区别？
+答：char 最大支持255 个字符，varchar 按字符集来看最大支持字符数，UTF8，每个字符占3个字节最大支持的字符数是65535/3
+char 按字符数来分配存储空间，不够字符数的以0来补齐， varchar 按实际字符数来分配存储空间
+19.mysql数据库有那些约束条件？
+答：null ,not null, default, key
+20.如何向一个已有的表中添加一个新的字段，并指定添加字段的位置？
+答：alter table 表名 add 字段 类型 约束条件  （first 加到首字段  ，after ＋ 字段名，加到某一个字段后）；
+21.如何向一个已有的表中修改一个已有字段的类型，并指定修改字段的位置？
+答：alter table 表名 modify 字段 新的类型 或 新的约束条件  first 改到首字段  after改到某一个字段后。
+22.如何修改字段名？
+答：alter table 表名 change 旧的字段名  新的字段名  类型  约束条件；
+23.如何删除已有字段？
+答：alter table 表名 delete 字段名；
+正确答案：alter table 表名 drop  字段名；
+24.如何修改表名？
+答.alter table 表名 rename 新表名；
+25.什么是索引？
+答.相于于一个目录， 把表中的字段进行排序
+不够准确： 把记录集中的多个字段进行排序的方法
+26.索引的优缺点？
+答：优点：加快查询速度，数据是唯一的
+    缺点： 维护数据速度慢，占物理存储空间
+27.mysql有哪些键值类型？
+答：index 唯一索引  全文索引  主键  外键
+28.如何在已有的表中添加index字段？
+答：create index 表名 index(字段名)；
+正确的答案： create index 索引名 表名（字段名）；
+29.如何在建表的时候指定index字段？
+答：在);前加入语句index(字段名)
+30.如何删除指定表的索引字段.
+答: drop index from 表名。忘了，没记住
+正确的答案是： drop index 索引名 on 表名；
+
+
+
+
+
+
+
+
+
