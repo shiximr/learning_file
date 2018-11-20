@@ -1,0 +1,102 @@
+1.如何确认现有表已使用的默认引擎？
+答：
+show create table ＋ 表名
+
+2.如何修改已建表的存储引擎？
+答：
+alter table + 表名  engine=存储引擎的名称；
+.myisam存储引擎的特点？
+答：
+1、支持表级锁
+2、不支持事务、事务回滚、外键
+3.InnoDB存储引擎的特点？
+答：
+1、支持行级锁
+2、支持事务、事务回滚、外键
+
+4.数据导入的方式有哪些？
+答：
+1、从命令行导入
+2、从系统文件导入
+
+5.如何将/etc/passwd 导入test库list表并给每条记录加编号？
+答：
+1、先把/etc/passwd 文件复制到mysql 默认安全目录下/var/lib/secure-file/
+2、执行命令：
+导入数据：
+load data infile "/var/lib/secure-file/passwd"
+into table list
+fields terminated by ":"
+lines terminated by "\n";
+
+添加编号：
+alter table list add id int primary key not null auto_increment  first;
+
+6.数据导出的方式有哪些？
+答：
+导出到文件：
+1、导出到屏幕 select * from 库名.表名；
+2、导出到文件
+
+
+7.将test库list表中uid小于100的前10条记录导出，存为/myload/list2.txt文件
+答：先要将搜索的默认路径设置为/myload
+停止mysqld 服务
+修改/etc/my.cnf
+添加语句：secure_file_priv=/myload
+重启mysqld服务
+
+load outfile "/myload/list2.txt"
+from table 表名；
+正确答案：
+SQL 查询 into outfile "/myload/list2.txt" [fields terminated by "分隔符"] [lines terminated by "\n"];
+
+
+8.如何给单个字段或多个字段赋值？
+答：应该想问的是如何插入1条记录
+ insert into  表名 values(字段值列表)；
+ insert into  表名 values(字段值列表1)，(字段值列表2),(字段值列表N);
+
+9.如何给指定单个字段或多个字段赋值？
+答：
+insert into 表名（字段） values(字段值)
+insert into 表名（字段1，字段2，......字段N） values(字段1值，字段2值，字段N值)；
+
+10.如何更新表内的所有记录？
+答：update + 表名 ＋ set 字段＝字段值；
+
+11.删除符合条件的记录或者删除所有记录的方式是？
+答：
+删除所有记录： delete from 表名；
+删除符合条件的记录： delete from 表名 where 条件；
+ 
+12.字段类型，字符类型以及逻辑匹配和范围内匹配有哪些类型？以及各自的含义是什么？
+字段数值类型有：
+=
+!=
+< <=
+> >=
+
+字符类型：
+=
+!=
+
+逻辑匹配：
+AND  与
+OR   或
+！  或  not  非
+
+范围内匹配：
+in (值列表)   在... 里
+not in (值列表)  不在... 里
+between 数值1 and 数值2    在数值1 和 数值2 之间
+
+针对select  的   distinct 不要显示重复的值
+
+
+
+
+
+
+
+
