@@ -1,0 +1,503 @@
++++++++++++++++++++++++++++++++++++++++++++++++++++
+在数据库服务器192.168.4.50上做如下练习
+把/etc/passwd文件的内容存储到userdb库下的usertab表里，并做如下配置：
+
+mysql> create database userdb;
+Query OK, 1 row affected (0.06 sec)
+
+mysql> create table usertab(
+    -> name varchar(30),
+    -> password char(1),
+    -> uid int,
+    -> gid int,
+    -> comment char(150),
+    -> homedir char(150),
+    -> shell varchar(50)
+    -> );
+
+mysql> load data infile "/mydata/passwd"
+    -> into table usertab
+    -> fields terminated by ":"
+    -> lines terminated by "\n";
+Query OK, 41 rows affected (0.06 sec)
+Records: 41  Deleted: 0  Skipped: 0  Warnings: 0
+
+
+
+6 在用户名字段下方添加s_year字段 存放出生年份 默认值是1990
+
+mysql> alter table usertab add s_year year default 1990 after name;
+Query OK, 0 rows affected (0.37 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+7 在用户名字段下方添加字段名sex 字段值只能是gril 或boy 默认值是 boy
+
+mysql> alter table usertab add sex enum("boy","girl") default "boy" after name;
+Query OK, 0 rows affected (0.35 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+8 在sex字段下方添加 age字段  存放年龄 不允许输入负数。默认值 是 21
+
+mysql> alter table usertab add age int unsigned default 21 after sex;
+Query OK, 0 rows affected (0.35 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+9 把id字段值是10到50之间的用户的性别修改为 girl
+
+mysql> update usertab set sex="girl" where uid between 10 and 50;
+Query OK, 8 rows affected (0.04 sec)
+Rows matched: 8  Changed: 8  Warnings: 0
+
+10 统计性别是girl的用户有多少个。
+
+mysql> select count(*) from usertab where sex="girl";
++----------+
+| count(*) |
++----------+
+|        8 |
++----------+
+1 row in set (0.00 sec)
+
+
+
+12 查看性别是girl用户里 uid号 最大的用户名 叫什么。
+
+mysql> select name from usertab where uid=(select max(uid) from usertab where sex="girl");
++------+
+| name |
++------+
+| gdm  |
++------+
+
+13 添加一条新记录只给name、uid 字段赋值 值为rtestd  1000
+
+mysql> insert into usertab(name,uid) values("rtestd",1000);
+Query OK, 1 row affected (0.04 sec)
+
+添加一条新记录只给name、uid 字段赋值 值为rtest2d   2000
+
+mysql> insert into usertab(name,uid) values("rtest2d",2000);
+Query OK, 1 row affected (0.04 sec)
+
+14 显示uid 是四位数的用户的用户名和uid值。
+
+mysql> select name,uid from usertab where uid  like "____" ;
++---------+------+
+| name    | uid  |
++---------+------+
+| lisi    | 1000 |
+| rtestd  | 1000 |
+| rtest2d | 2000 |
++---------+------+
+3 rows in set (0.00 sec)
+
+
+15 显示名字是以字母r 开头 且是以字母d结尾的用户名和uid。 
+
+mysql> select name,uid from usertab where name regexp "^r(.*)d$";
++---------+------+
+| name    | uid  |
++---------+------+
+| radvd   |   75 |
+| rtestd  | 1000 |
+| rtest2d | 2000 |
++---------+------+
+3 rows in set (0.00 sec)
+
+16  查看是否有 名字以字母a开头 并且是 以字母c结尾的用户。 
+
+mysql> select name from usertab where name regexp "^a(.*)c$";
+Empty set (0.01 sec)
+
+8  把gid  在100到500间用户的家目录修改为/root
+
+mysql> update usertab set homedir="/root/" where gid between 100 and 500;
+Query OK, 7 rows affected (0.05 sec)
+Rows matched: 7  Changed: 7  Warnings: 0
+
+9  把用户是  root 、 bin 、  sync 用户的shell 修改为  /sbin/nologin
+
+mysql> update usertab set shell="/sbin/nologin" where name in ("root","bin","sync");
+Query OK, 2 rows affected (0.05 sec)
+Rows matched: 3  Changed: 2  Warnings: 0
+
+10   查看  gid 小于10的用户 都使用那些shell
+
+mysql> select distinct shell from usertab where gid<10;
++----------------+
+| shell          |
++----------------+
+| /sbin/nologin  |
+| /sbin/shutdown |
+| /sbin/halt     |
++----------------+
+3 rows in set (0.00 sec)
+
+
+12   删除  名字以字母d开头的用户。
+
+mysql> select name from usertab where name regexp "^d";
++--------+
+| name   |
++--------+
+| daemon |
+| dbus   |
++--------+
+2 rows in set (0.00 sec)
+
+mysql> delete from usertab where name regexp "^d";
+Query OK, 2 rows affected (0.05 sec)
+
+
+13   查询  gid 最大的前5个用户 使用的 shell
+
+mysql> select name,shell from usertab order by gid desc limit 5;
++----------------+---------------+
+| name           | shell         |
++----------------+---------------+
+| nfsnobody      | /sbin/nologin |
+| lisi           | /bin/bash     |
+| polkitd        | /sbin/nologin |
+| libstoragemgmt | /sbin/nologin |
+| colord         | /sbin/nologin |
++----------------+---------------+
+5 rows in set (0.00 sec)
+
+14   查看那些用户没有家目录
+
+mysql> select name from usertab where homedir is null;
++---------+
+| name    |
++---------+
+| rtestd  |
+| rtest2d |
++---------+
+2 rows in set (0.00 sec)
+
+15  把gid号最小的前5个用户信息保存到/mydata/min5.txt文件里。 
+mysql> select * from usertab order by gid asc limit 5 into outfile "/mydata/min5.txt";
+Query OK, 5 rows affected (0.00 sec)
+
+mysql> system cat /mydata/min5.txt
+rtestd	boy	21	1990	\N	1000	\N	\N	\N	\N
+rtest2d	boy	21	1990	\N	2000	\N	\N	\N	\N
+root	boy	21	1990	x	0	0	root	/root	/sbin/nologin
+operator	girl	21	1990	x	11	0	operator	/root	/sbin/nologin
+sync	boy	21	1990	x	5	0	sync	/sbin	/sbin/nologin
+
+使用useradd 命令添加登录系统的用户 名为lucy 
+
+
+16  把lucy用户的信息 添加到user1表里
+
+mysql> create table user1(
+    -> name char(30),
+    -> password char(1),
+    -> uid int,
+    -> gid int,
+    -> comment char(150),
+    -> homedir char(150),
+    -> shell char(50)
+    -> );
+Query OK, 0 rows affected (0.22 sec)
+
+mysql> load data infile "/mydata/passwd"
+    -> into table user1
+    -> fields terminated by ":"
+    -> lines terminated by "\n";
+Query OK, 43 rows affected (0.05 sec)
+Records: 43  Deleted: 0  Skipped: 0  Warnings: 0
+
+mysql> select * from user1 where name="lucy";
++------+----------+------+------+---------+------------+-----------+
+| name | password | uid  | gid  | comment | homedir    | shell     |
++------+----------+------+------+---------+------------+-----------+
+| lucy | x        | 1001 | 1001 |         | /home/lucy | /bin/bash |
++------+----------+------+------+---------+------------+-----------+
+1 row in set (0.00 sec)
+
+17  删除表中的 comment 字段 
+
+mysql> alter table user1 drop comment;
+Query OK, 0 rows affected (0.35 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+18  设置表中所有字段值不允许为空
+
+原表结构为：
+mysql> desc user1;
++----------+-----------+------+-----+---------+-------+
+| Field    | Type      | Null | Key | Default | Extra |
++----------+-----------+------+-----+---------+-------+
+| name     | char(30)  | YES  |     | NULL    |       |
+| password | char(1)   | YES  |     | NULL    |       |
+| uid      | int(11)   | YES  |     | NULL    |       |
+| gid      | int(11)   | YES  |     | NULL    |       |
+| homedir  | char(150) | YES  |     | NULL    |       |
+| shell    | char(50)  | YES  |     | NULL    |       |
++----------+-----------+------+-----+---------+-------+
+6 rows in set (0.00 sec)
+
+
+mysql> alter table user1 modify name char(30) not null;
+Query OK, 0 rows affected (0.37 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> alter table user1 modify password char(1) not null;
+Query OK, 0 rows affected (0.47 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> alter table user1 modify uid int not null;
+Query OK, 0 rows affected (0.44 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> alter table user1 modify gid int not null;
+Query OK, 0 rows affected (0.42 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> alter table user1 modify homedir char(150) not null;
+Query OK, 0 rows affected (0.53 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> alter table user1 modify shell char(50) not null;
+Query OK, 0 rows affected (0.43 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+更改后结构为：
+mysql> desc user1;
++----------+-----------+------+-----+---------+-------+
+| Field    | Type      | Null | Key | Default | Extra |
++----------+-----------+------+-----+---------+-------+
+| name     | char(30)  | NO   |     | NULL    |       |
+| password | char(1)   | NO   |     | NULL    |       |
+| uid      | int(11)   | NO   |     | NULL    |       |
+| gid      | int(11)   | NO   |     | NULL    |       |
+| homedir  | char(150) | NO   |     | NULL    |       |
+| shell    | char(50)  | NO   |     | NULL    |       |
++----------+-----------+------+-----+---------+-------+
+6 rows in set (0.00 sec)
+
+19  删除root 用户家目录字段的值
+????
+update user1 set homedir="" where name="root"  ???
+20  显示 gid 大于500的用户的用户名 家目录和使用的shell
+
+mysql> select name,homedir,shell from user1 where gid > 500;
++---------------------+---------------------------+---------------+
+| name                | homedir                   | shell         |
++---------------------+---------------------------+---------------+
+| polkitd             | /                         | /sbin/nologin |
+| libstoragemgmt      | /var/run/lsm              | /sbin/nologin |
+| colord              | /var/lib/colord           | /sbin/nologin |
+| chrony              | /var/lib/chrony           | /sbin/nologin |
+| geoclue             | /var/lib/geoclue          | /sbin/nologin |
+| nfsnobody           | /var/lib/nfs              | /sbin/nologin |
+| setroubleshoot      | /var/lib/setroubleshoot   | /sbin/nologin |
+| gnome-initial-setup | /run/gnome-initial-setup/ | /sbin/nologin |
+| lisi                | /home/lisi                | /bin/bash     |
+| lucy                | /home/lucy                | /bin/bash     |
++---------------------+---------------------------+---------------+
+10 rows in set (0.00 sec)
+
+21  删除uid大于100的用户记录
+
+mysql> delete from user1 where uid>100;
+Query OK, 17 rows affected (0.05 sec)
+
+22  显示uid号在10到30区间的用户有多少个。
+
+mysql> select count(*) from user1 where uid between 10 and 30;
++----------+
+| count(*) |
++----------+
+|        5 |
++----------+
+1 row in set (0.00 sec)
+
+23  显示uid号是100以内的用户使用shell的类型。
+
+mysql> select distinct shell from user1 where uid <= 100;
++----------------+
+| shell          |
++----------------+
+| /bin/bash      |
+| /sbin/nologin  |
+| /bin/sync      |
+| /sbin/shutdown |
+| /sbin/halt     |
+| /bin/false     |
++----------------+
+6 rows in set (0.00 sec)
+
+24  显示uid号最小的前10个用户的信息。
+mysql> select * from user1 order by uid asc limit 10;
++----------+----------+-----+-----+-----------------+----------------+
+| name     | password | uid | gid | homedir         | shell          |
++----------+----------+-----+-----+-----------------+----------------+
+| root     | x        |   0 |   0 | /root           | /bin/bash      |
+| bin      | x        |   1 |   1 | /bin            | /sbin/nologin  |
+| daemon   | x        |   2 |   2 | /sbin           | /sbin/nologin  |
+| adm      | x        |   3 |   4 | /var/adm        | /sbin/nologin  |
+| lp       | x        |   4 |   7 | /var/spool/lpd  | /sbin/nologin  |
+| sync     | x        |   5 |   0 | /sbin           | /bin/sync      |
+| shutdown | x        |   6 |   0 | /sbin           | /sbin/shutdown |
+| halt     | x        |   7 |   0 | /sbin           | /sbin/halt     |
+| mail     | x        |   8 |  12 | /var/spool/mail | /sbin/nologin  |
+| operator | x        |  11 |   0 | /root           | /sbin/nologin  |
++----------+----------+-----+-----+-----------------+----------------+
+10 rows in set (0.00 sec)
+
+25  显示表中第10条到第15条记录
+
+mysql> select * from user1 limit 9,6;
++----------+----------+-----+-----+------------------+---------------+
+| name     | password | uid | gid | homedir          | shell         |
++----------+----------+-----+-----+------------------+---------------+
+| operator | x        |  11 |   0 | /root            | /sbin/nologin |
+| games    | x        |  12 | 100 | /usr/games       | /sbin/nologin |
+| ftp      | x        |  14 |  50 | /var/ftp         | /sbin/nologin |
+| nobody   | x        |  99 |  99 | /                | /sbin/nologin |
+| dbus     | x        |  81 |  81 | /                | /sbin/nologin |
+| rpc      | x        |  32 |  32 | /var/lib/rpcbind | /sbin/nologin |
++----------+----------+-----+-----+------------------+---------------+
+
+26  显示uid号小于50且名字里有字母a  用户的详细信息
+mysql> select * from user1 where uid<50 and name regexp "a";
++----------+----------+-----+-----+------------------+---------------+
+| name     | password | uid | gid | homedir          | shell         |
++----------+----------+-----+-----+------------------+---------------+
+| daemon   | x        |   2 |   2 | /sbin            | /sbin/nologin |
+| adm      | x        |   3 |   4 | /var/adm         | /sbin/nologin |
+| halt     | x        |   7 |   0 | /sbin            | /sbin/halt    |
+| mail     | x        |   8 |  12 | /var/spool/mail  | /sbin/nologin |
+| operator | x        |  11 |   0 | /root            | /sbin/nologin |
+| games    | x        |  12 | 100 | /usr/games       | /sbin/nologin |
+| apache   | x        |  48 |  48 | /usr/share/httpd | /sbin/nologin |
++----------+----------+-----+-----+------------------+---------------+
+7 rows in set (0.00 sec)
+
+27  只显示用户 root   bin   daemon  3个用户的详细信息。
+
+mysql> select * from user1 where name in ("root","bin","daemon");
++--------+----------+-----+-----+---------+---------------+
+| name   | password | uid | gid | homedir | shell         |
++--------+----------+-----+-----+---------+---------------+
+| root   | x        |   0 |   0 | /root   | /bin/bash     |
+| bin    | x        |   1 |   1 | /bin    | /sbin/nologin |
+| daemon | x        |   2 |   2 | /sbin   | /sbin/nologin |
++--------+----------+-----+-----+---------+---------------+
+3 rows in set (0.00 sec)
+
+28  显示除root用户之外所有用户的详细信息。
+
+mysql> select * from user1 where name!="root";
++----------+----------+-----+-----+-----------------------+----------------+
+| name     | password | uid | gid | homedir               | shell          |
++----------+----------+-----+-----+-----------------------+----------------+
+| bin      | x        |   1 |   1 | /bin                  | /sbin/nologin  |
+| daemon   | x        |   2 |   2 | /sbin                 | /sbin/nologin  |
+| adm      | x        |   3 |   4 | /var/adm              | /sbin/nologin  |
+| lp       | x        |   4 |   7 | /var/spool/lpd        | /sbin/nologin  |
+| sync     | x        |   5 |   0 | /sbin                 | /bin/sync      |
+| shutdown | x        |   6 |   0 | /sbin                 | /sbin/shutdown |
+| halt     | x        |   7 |   0 | /sbin                 | /sbin/halt     |
+| mail     | x        |   8 |  12 | /var/spool/mail       | /sbin/nologin  |
+| operator | x        |  11 |   0 | /root                 | /sbin/nologin  |
+| games    | x        |  12 | 100 | /usr/games            | /sbin/nologin  |
+| ftp      | x        |  14 |  50 | /var/ftp              | /sbin/nologin  |
+| nobody   | x        |  99 |  99 | /                     | /sbin/nologin  |
+| dbus     | x        |  81 |  81 | /                     | /sbin/nologin  |
+| rpc      | x        |  32 |  32 | /var/lib/rpcbind      | /sbin/nologin  |
+| radvd    | x        |  75 |  75 | /                     | /sbin/nologin  |
+| tss      | x        |  59 |  59 | /dev/null             | /sbin/nologin  |
+| rpcuser  | x        |  29 |  29 | /var/lib/nfs          | /sbin/nologin  |
+| gdm      | x        |  42 |  42 | /var/lib/gdm          | /sbin/nologin  |
+| sshd     | x        |  74 |  74 | /var/empty/sshd       | /sbin/nologin  |
+| avahi    | x        |  70 |  70 | /var/run/avahi-daemon | /sbin/nologin  |
+| postfix  | x        |  89 |  89 | /var/spool/postfix    | /sbin/nologin  |
+| ntp      | x        |  38 |  38 | /etc/ntp              | /sbin/nologin  |
+| tcpdump  | x        |  72 |  72 | /                     | /sbin/nologin  |
+| mysql    | x        |  27 |  27 | /var/lib/mysql        | /bin/false     |
+| apache   | x        |  48 |  48 | /usr/share/httpd      | /sbin/nologin  |
++----------+----------+-----+-----+-----------------------+----------------+
+25 rows in set (0.00 sec)
+
+29  统计username 字段有多少条记录
+
+mysql> select count(name) from user1;
++-------------+
+| count(name) |
++-------------+
+|          26 |
++-------------+
+1 row in set (0.00 sec)
+
+30  显示名字里含字母c  用户的详细信息
+
+mysql> select * from user1 where name regexp "c";
++---------+----------+-----+-----+------------------+---------------+
+| name    | password | uid | gid | homedir          | shell         |
++---------+----------+-----+-----+------------------+---------------+
+| sync    | x        |   5 |   0 | /sbin            | /bin/sync     |
+| rpc     | x        |  32 |  32 | /var/lib/rpcbind | /sbin/nologin |
+| rpcuser | x        |  29 |  29 | /var/lib/nfs     | /sbin/nologin |
+| tcpdump | x        |  72 |  72 | /                | /sbin/nologin |
+| apache  | x        |  48 |  48 | /usr/share/httpd | /sbin/nologin |
++---------+----------+-----+-----+------------------+---------------+
+5 rows in set (0.00 sec)
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+31  在sex字段下方添加名为pay的字段，用来存储工资，默认值    是5000.00
+
+mysql> alter table usertab add pay float default 5000.00 after sex;
+Query OK, 0 rows affected (0.45 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+32  把所有女孩的工资修改为10000
+
+mysql> update usertab set pay=10000 where sex="girl";
+Query OK, 8 rows affected (0.04 sec)
+Rows matched: 8  Changed: 8  Warnings: 0
+
+33  把root用户的工资修改为30000
+    给adm用户涨500元工资
+
+mysql> update usertab set pay=30000 where name="root";
+Query OK, 1 row affected (0.05 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> update usertab set pay=pay+500 where name="adm";
+Query OK, 1 row affected (0.04 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+34  查看所有用户的名字和工资
+select name,pay from usertab;
+35  查看工资字段的平均值
+select avg(pay) from usertab;
+36  查看工资字段值小于平均工资的用户 是谁。
+      查看女生里谁的uid号最大
+mysql> select name from  usertab where pay< (select avg(pay) from usertab);
+select name from usertab where uid=(select max(uid) from usertab where sex="girl");
+38  查看bin用户的uid gid 字段的值 及 这2个字段相加的和  
+mysql> select uid,gid,uid+gid from usertab where name="bin";
++------+------+---------+
+| uid  | gid  | uid+gid |
++------+------+---------+
+|    1 |    1 |       2 |
++------+------+---------+
+1 row in set (0.00 sec)
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+
+
+
+
+
+
+
