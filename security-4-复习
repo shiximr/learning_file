@@ -1,0 +1,44 @@
+4表5链
+nat filter raw mangle
+
+PREROUTING
+POSTROUTING
+INPUT
+OUTPUT
+FORWARD
+
+iptables -t [表名] 选项 链 「rule－nunber」 条件  -j 动作
+
+－A  在规则末尾添加规则
+－I  在规则列表前插入1条规则
+－D rule-number 删除指定的规则
+－F 清除全部规则
+－L 列出规则
+－n 以数字的形式显示IP地址和端口号
+--line-numbers 规则前加行号
+－P 设置默认规则
+
+动作：
+ACCEPT
+REJECT
+DROP
+LOG
+
+基本匹配条件
+协议： -p protocol 指定协议  tcp udp
+IP地址： -s 源IP  -d 目标IP
+网络接口： -i 接受数据的接口 -o 发送数据的接口
+隐含匹配
+端口号： --sport 源端口号   --dport 目标端口号
+ICMP类型匹配： echo-reply echo-request
+
+扩展匹配：
+-m mac      --mac-source           mac地址
+-m iprange  --src-range[dst-range] 起始IP－结束IP 
+-m mutiport --sports[dports]       端口列表
+
+NAT表的应用
+SNAT 源地址转换
+iptables -t nat -I POSTROUTING 条件 -j SNAT --to-source 可以上网的IP地址
+MASQUERADE 共亨动态IP上网
+iptables -t nat -I POSTROUTING 条件 -j MASQUERADE
