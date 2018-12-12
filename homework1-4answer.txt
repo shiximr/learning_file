@@ -1,0 +1,218 @@
+day 04 homework
+vm1(eth1:192.168.2.20 ,gateway 192.168.2.30)
+vm2(eth1:192.168.2.30, eth2:201.1.1.30)
+vm3(eth2:201.1.1.40 ,gateway 201.1.1.30)
+
+vm2 主机设置防火墙规则：
+1、禁止任何其他主机 ping 本机,但本机可以 ping 其他主机
+
+iptables -F
+iptables -t filter -I INPUT -p icmp --icmp-type echo-request -j REJECT
+
+2、禁止 192.168.2.20 通过 ssh 远程本机
+iptables -t filter -I INPUT -p tcp --dport 22 -j REJECT
+
+3、通过 mac 地址禁止 vm3 访问本机的 ftp 服务
+a. first , user nmap scan vm3 mac address,command : nmap -n -sP 201.1.1.40
+b. secondly,write the rules on iptables,like this:
+    iptables -t filter -I INPUT -m mac --mac-source 52:54:00:89:5C:45 -p tcp --dport 21 -j REJECT
+
+4、通过一条规则设置允许访问本机的 80,3306,25 端口
+iptables -t filter -I INPUT  -m multiport -p tcp --dport 80,3306,25 -j ACCEPT
+
+5、禁止任何主机通过本机的 eth2 网卡访问本机的 53 端口
+iptables -t filter -I INPUT -i eth2 -p tcp --dport 53 -j REJECT
+
+6、禁止 vm2 转发任何与 ftp 有关的数据包
+iptables -t filter -I FORWARD -p tcp --dport 21 -j REJECT
+
+7、设置 SNAT 规则,来源于 192.168.2.0 网络的数据包,修改源地址为 201.1.1.30
+iptables -t nat -I POSTROUTING -s 192.168.2.0/24 -j SNAT --to-source 201.1.30
+
+利用MASQUERADE规则：
+iptables -t nat -I POSTROUTING -s 192.168.2.0/24 -j MASQUERADE
+
+day 03 homework
+虚拟机环境准备
+vm1(eth1:192.168.2.20),
+vm2(eth1:192.168.2.30)
+
+1、在 vm2 上安装 nginx,vsftpd,mariadb,mariadb-server,并启动所有对应的服务
+
+在 vm1 上使用 nmap 扫描 vm2 主机的所有 TCP 服务
+nmap   -sT   192.168.2.30
+
+在 vm2 上配置 nginx 用户认证,并使用 tcpdump 抓取 80 端口相关的数据包,注意默
+认抓取的是第一个网卡的数据,抓取其他网卡可以使用-i 选项
+tcpdump -A -i eth1 host 192.168.2.20 and tcp port 80 
+
+在 vm1 上使用 firefox 访问 vm2 的页面,输入账户与密码,到 vm2 观察数据包
+tcpdump -A -i eth1 host 192.168.2.20 and tcp port 80 -w nginx.txt
+tcpdump -A -r nginx.txt | grep Authorization
+echo "dG9tOjEyMzQ1Ng==" | base64 -d   可以解密出登录的密码和帐户
+
+在 vm2 主机,使用 limit 模块对 nginx 限制并发,限制并发数量为 10,burst 为 10
+修改配置文件：
+http {
+    limit_req_zone $binary_remote_addr zone=one:10m rate=1r/s;
+
+    ...
+
+    server {
+
+        ...
+
+        location /search/ {
+            limit_req zone=one burst=5;
+        }
+在 vm2 主机,设置 nginx 拒绝所有非 POST 或 GET 的请求
+if ($request_method !~  ^(get|post)$) {
+    return 444;
+}
+在 vm2 主机,设置 nginx 防止 buffer 数据溢出
+http{
+client_body_buffer_size  1K;
+client_header_buffer_size 1k;
+client_max_body_size 1k;
+large_client_header_buffers 2 1k;
+ … …
+}
+
+在 vm2 主机登陆 mariadb 服务器,创建一个可以从远程登陆的数据库账户
+在 vm2 主机使用 tcpdump 对 3306 进行抓包,在 vm1 连接 vm2 的数据库,进行查询操
+作,回到 vm2 观察抓取的数据包信息
+1、安装数据库mariadb ：yum -y install mariadb-server mariadb
+2、启动数据库服务： systemctl start mariadb
+3、执行安全检查脚本：mysql_security_install
+可以设置密码、禁root远程登录、删除测试库test、删除其它用户
+tcpdump -A -i eth1 tcp port 3306
+
+在 vm2 安装 tomcat,并以 tomcat 身份降级启动 tomcat 服务
+chown -R tomcat.tomcat /usr/local/tomcat
+su - tomcat -c "/usr/local/tomcat/bin/startup.sh"
+
+在 vm2 主机执行如下命令:
+mkdir -p /root/{source1.0,surce2.0}/test/
+echo “hehe” > /root/source1.0/test.conf
+echo “haha” > /root/source2.0/test.conf
+echo “hello” > /root/source1.0/test/hello.shecho “hello world” > /root/source2.0/test/hello.sh
+cp /bin/find /root/source1.0/
+cp /bin/find /root/source2.0/
+echo “xyz” >> /root/source2.0/find
+在 vm2 主机对/root/source1.0 和/root/source2.0 生成补丁文件,并使用 patch 工具对
+source1 目录下的所有代码打补丁
+diff -Nura /root/source1.0/ /root/source2.0/ > 1.patch
+cd /root/source1.0/
+patch -p3 < /root/1.patch
+
+
+day01 - day 02
+vm1 创建账户 netadm,softadm,uesradm,procadm;为所有的账户设置初始密码 123456
+#!/bin/bash
+for i in netadm softadm useradm procadm
+do
+useradd $i &> /dev/null
+echo 123456 | passwd --stdin $i &> /dev/null
+done
+执行脚本
+
+vm1 创建账户 devel1,devel2,devel3,test1,test2,test3;为所有账户设置初始密码 passwd
+#!/bin/bash
+for i in devel1 devel2 devel3 test1 test2 test3
+do
+useradd $i &> /dev/null
+echo 'passwd' | passwd --stdin $i &> /dev/null
+done
+
+vm1 设置 test3 的账户过期时间为 2019-12-12.
+chage -E 2019-12-12
+
+vm1 使用 passwd 命令临时锁定 devel3 账户
+passwd -l devel3
+
+vm1 为/etc/resolv.conf 文件添加 i 锁定属性,为/etc/hosts 添加 a 仅可追加属性
+chattr +i /etc/resolv.conf
+chattr +a /etc/hosts
+
+vm1 用 test1 用户登陆系统,使用 su 命令切换为 test2 账户在 tmp 下创建一个文件(非
+交互模式)
+su - test2 -c "touch /tmp/test.txt"
+
+vm1 使用 root 登陆系统,设置 sudo 权限,要求如下:
+vm1 让 netadm 能以 root 的身份执行网络管理的任务(参考 sudo 命令别名)
+visudo
+netadm ALL=    NETWORKING
+
+vm1 让 softadm 能以 root 的身份执行软件管理的任务
+softadm ALL=   SOFTWARE,/usr/sbin/systemctl 
+
+vm1 让 useradm 能以 root 的身份执行账户管理的任务(不能修改 root 密码)
+useradm ALL=  ! /usr/bin/passwd root, /usr/bin/passwd [A-Za-z]*, /usr/sbin/useradd, /usr/sbin/userdel
+
+vm1 让 procadm 能以 root 的身份执行进程管理任务(如杀死进程)
+procadm ALL= PROCESSES
+
+vm1 设置虚拟机 ssh 配置,禁止 root 远程本机,设置 sshd 黑名单,禁止 test3 从任何
+主机远程本机
+修改ssh 配置文件/etc/ssh/sshd_config
+PermitRootLogin no
+denyusers test3
+
+vm1 真实主机创建一对 ssh 密钥,让真实机可以无密码远程虚拟机,观察密钥在虚拟机
+中的位置
+密钥位置： 可以在ssh 的配置文件找到文件名和路径：/root/.ssh/authorized_keys
+
+在 vm1 主机使用 gpg 软件对/etc/rc.d/rc.local 文件进行对称加密,并将加密文件传给
+vm2
+
+yum -y install gnupg2
+gpg -c /etc/rc.d/rc.local
+scp rc.local.gpg 192.168.2.30:/root/
+
+在 vm2 对主机 vm1 传来的加密文件进行解密
+gpg -d rc.local.gpg > a.txt
+
+在 vm1 上使用 gpg 创建非对称密钥对,并将公钥到处传给 vm2
+gpg --gen-keys
+gpg -a --export jackm(密钥名) > mykey.pub
+scp mykey.pub 192.168.2.20:/root/
+在 vm2 主机将 vm1 传过来的公钥导入,并使用公钥对/etc/sysctl.conf 文件加密,并将
+加密文件传给 vm1,在 vm1 主机使用自己的私钥解密该文件
+gpg --import mykey.pub
+gpg -e -r jackm /etc/sysctl.conf
+scp /etc/sysctl.conf.gpg 192.168.2.20:/root/
+gpg -d sysctl.conf.gpg > b.txt 
+
+在 vm1 主机使用私钥给文件/etc/sysctl.conf 文件签名,在 vm2 主机验证签名
+gpg -b /etc/sysctl.conf
+scp /etc/sysctl.conf /etc/sysctl.conf.sig 192.168.2.30:/root/
+gpg --verify systctl.conf.sig sysctl.conf
+
+使用 aide 软件对/bin/和/sbin/目录进行入侵检测
+yum -y install aide
+vim /etc/aide.conf
+aide --init
+/var/lib/aide/aide.db.new.gz 把这个初始化的数据库文件拷贝到U盘
+检测：
+把以前初始化生成的数据库文件改名为aide.db.gz放回数据库目录下
+aide --check
+自动校验变化的数据
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
